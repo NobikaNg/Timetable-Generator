@@ -1,0 +1,20 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.pyc
+test.py
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Log files
+*.log
+application.log
+
+# Database files
+*.db
+*.sqlite3
+
+# Environment variables
+.env
