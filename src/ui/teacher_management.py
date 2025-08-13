@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import Toplevel
+from tkinter import ttk, messagebox, Toplevel
 import uuid
 from src.models.teacher import Teacher
 import logging
+import calendar
+from datetime import date
 
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level
@@ -23,9 +24,20 @@ class TeacherUI:
         self.add_teacher_button = tk.Button(root, text="Add Teacher", command=self.open_add_teacher_window)
         self.add_teacher_button.pack(pady=20)
 
+        # Delete Teacher button
+        self.delete_teacher_button = tk.Button(root, text="Delete Teacher", command=self.open_delete_teacher_window)
+        self.delete_teacher_button.pack(pady=20)
+
+        # Edit Teacher button
+        self.edit_teacher_button = tk.Button(root, text="Edit Teacher", command=self.open_edit_teacher_window)
+        self.edit_teacher_button.pack(pady=20)
+
         # Teacher Listbox
         self.teacher_listbox = tk.Listbox(root, width=50, height=20)
         self.teacher_listbox.pack(side="right", padx=20, pady=20)
+        self.teacher_listbox.bind('<<ListboxSelect>>', self.on_teacher_select)
+
+        self.selected_teacher_id = None
 
         # Load teacher data from the database
         self.load_teacher_data()
@@ -78,6 +90,53 @@ class TeacherUI:
         end_time_dropdown = ttk.Combobox(add_teacher_window, textvariable=end_time, values=times, state="readonly")
         end_time_dropdown.pack(pady=5)
 
+        # Available dates calendar
+        tk.Label(add_teacher_window, text="Available Dates:").pack(pady=10)
+
+        calendar_frame = tk.Frame(add_teacher_window)
+        calendar_frame.pack(pady=5)
+
+        today = date.today()
+        year, month = today.year, today.month
+
+        cal = calendar.Calendar(firstweekday=6)
+        weeks = cal.monthdatescalendar(year, month)
+        headers = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        for col, h in enumerate(headers):
+            tk.Label(calendar_frame, text = h, font = ("Arial", 12, "bold"), padx = 8, pady = 4).grid(row=0, column = col, sticky = "nsew")
+
+        selected_dates = set()
+
+        def make_toggle(day_date):
+            btn_ref = {"btn": None, "default_bg": None}
+
+            def on_click():
+                if day_date.month != month:
+                    return
+                iso = day_date.isoformat()
+                if iso in selected_dates:
+                    selected_dates.remove(iso)
+                    btn_ref["btn"].config(relief = "raised", bg=btn_ref["default_bg"])
+                else:
+                    selected_dates.add(iso)
+                    btn_ref["btn"].config(relief = "sunken", bg="#cce5ff")
+            
+            return btn_ref, on_click
+        
+        for r, week in enumerate(weeks, start=1):
+            for c, day_date in enumerate(week):
+                if day_date.month != month:
+                    tk.Label(calendar_frame, text = "", width = 4, padx=8, pady=6).grid(row=r, column=c, sticky="nsew")
+                else:
+                    ref, handler = make_toggle(day_date)
+                    day_val = day_date.day
+                    btn = tk.Button(calendar_frame, text=str(day_val), width=4, padx=8, pady=6, command=handler)
+                    btn.grid(row=r, column=c, sticky="nsew", padx=1, pady=1)
+                    ref["btn"] = btn
+                    ref["default_bg"] = btn.cget("bg")
+
+        # submit button
         tk.Button(
             add_teacher_window, 
             text="Submit", 
@@ -86,7 +145,7 @@ class TeacherUI:
                 teacher_salary_entry.get(), 
                 start_time.get(),
                 end_time.get(),
-                [],
+                list(sorted(selected_dates)), # This is the list of available dates, not implemented yet
                 add_teacher_window
             )
         ).pack(pady=10)
@@ -106,25 +165,132 @@ class TeacherUI:
         window.destroy()
         self.load_teacher_data()  # Reload the teacher data
     
+    def on_teacher_select(self, event):
+        """ 
+        handler: when a teacher in the list box is selected
+        """
+        selection = event.widget.curselection()
+        if selection:
+            selected_line = event.widget.get(selection[0])
+            teacher_id = selected_line.split(",")[0].replace("ID: ","").strip()
+            self.selected_teacher_id = teacher_id
 
-    # def open_delete_teacher_window(self):
-    #     """Delete a new window to delete a teacher."""
-    #     delete_teacher_window = Toplevel(self.root)
-    #     delete_teacher_window.title("Delete Teacher")
-    #     delete_teacher_window.geometry("400x200")
-    #     tk.Label(delete_teacher_window, text="Are you sure you want to delete this teacher?", font=("Arial", 12)).pack(pady=20)
+            logging.info(f"Selected teacher ID: {self.selected_teacher_id}")
+
+            self.delete_teacher_button.config(state="normal")
         
-    #     button_frame = tk.Frame(delete_teacher_window)
-    #     button_frame.pack(pady=10)
+        else:
+            self.selected_teacher_id = None
+            self.delete_teacher_button.config(state="disabled")
 
-    #     tk.Button(button_frame, text="Confirm", command=lambda: self.confirm_delete(delete_teacher_window)).pack(side="left", padx=20)
-    #     tk.Button(button_frame, text="Cancel", command=delete_teacher_window.destroy).pack(side="right", padx=20)
+    def open_delete_teacher_window(self):
+        """Delete a new window to delete a teacher."""
+        if not self.selected_teacher_id:
+            return  # No teacher selected
 
-    # def confirm_delete(self, window):
-    #     """Handle the confirmation logic."""
-    #     tk.Label(window, text="Teacher deleted!", font=("Arial", 12), fg="green").pack(pady=10)
-    #     # Add your delete logic here
+        confirm = messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this teacher?")
+        if confirm:
+            Teacher.delete_teacher(self.selected_teacher_id)
+            self.selected_teacher_id = None
+            self.load_teacher_data()
+            self.delete_teacher_button.config(state="disabled")
 
-    #     window.destroy()  # Close the window after confirming
+    def open_edit_teacher_window(self):
+        """Edit the selected teacher's information"""
+        if not self.selected_teacher_id:
+            return  # No teacher selected
 
+        edit_teacher_window = Toplevel(self.root)
+        edit_teacher_window.title("Edit Teacher")
+        edit_teacher_window.geometry("400x300")
 
+        # Fetch the selected teacher's information
+        teacher = Teacher.find_teacher(self.selected_teacher_id)
+        if not teacher:
+            logging.error(f"Teacher with ID {self.selected_teacher_id} not found.")
+            return
+
+        # Name
+        tk.Label(edit_teacher_window, text="Name:").pack()
+        teacher_name_entry = tk.Entry(edit_teacher_window)
+        teacher_name_entry.pack(pady=5)
+
+        # Salary 
+        tk.Label(edit_teacher_window, text="Salary:").pack()
+        teacher_salary_entry = tk.Entry(edit_teacher_window)
+        teacher_salary_entry.pack(pady=5)
+
+        # Time
+        times = [f"{hour}:{minute:02d}" for hour in range(9, 22) for minute in [0, 30]]
+        tk.Label(edit_teacher_window, text="Start Time").pack(pady=5)
+        start_time = tk.StringVar()
+        start_time_dropdown = ttk.Combobox(edit_teacher_window, textvariable=start_time, values=times, state="readonly")
+        start_time_dropdown.pack(pady=5)
+
+        tk.Label(edit_teacher_window, text="End Time").pack(pady=5)
+        end_time = tk.StringVar()
+        end_time_dropdown = ttk.Combobox(edit_teacher_window, textvariable=end_time, values=times, state="readonly")
+        end_time_dropdown.pack(pady=5)
+
+        # Available date 
+        tk.Label(edit_teacher_window, text="Available Dates:").pack(pady=10)
+
+        calendar_frame = tk.Frame(edit_teacher_window)
+        calendar_frame.pack(pady=5)
+
+        today = date.today()
+        year, month = today.year, today.month
+
+        cal = calendar.Calendar(firstweekday=6)
+        weeks = cal.monthdatescalendar(year, month)
+        headers = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        for col, h in enumerate(headers):
+            tk.Label(calendar_frame, text = h, font = ("Arial", 12, "bold"), padx = 8, pady = 4).grid(row=0, column = col, sticky = "nsew")
+
+        selected_dates = set()
+
+        def make_toggle(day_date):
+            btn_ref = {"btn": None, "default_bg": None}
+
+            def on_click():
+                if day_date.month != month:
+                    return
+                iso = day_date.isoformat()
+                if iso in selected_dates:
+                    selected_dates.remove(iso)
+                    btn_ref["btn"].config(relief = "raised", bg=btn_ref["default_bg"])
+                else:
+                    selected_dates.add(iso)
+                    btn_ref["btn"].config(relief = "sunken", bg="#cce5ff")
+            
+            return btn_ref, on_click
+        
+        for r, week in enumerate(weeks, start=1):
+            for c, day_date in enumerate(week):
+                if day_date.month != month:
+                    tk.Label(calendar_frame, text = "", width = 4, padx=8, pady=6).grid(row=r, column=c, sticky="nsew")
+                else:
+                    ref, handler = make_toggle(day_date)
+                    day_val = day_date.day
+                    btn = tk.Button(calendar_frame, text=str(day_val), width=4, padx=8, pady=6, command=handler)
+                    btn.grid(row=r, column=c, sticky="nsew", padx=1, pady=1)
+                    ref["btn"] = btn
+                    ref["default_bg"] = btn.cget("bg")
+
+        # Save button
+        tk.Button(edit_teacher_window, text="Save", command=lambda: self.save_edited_teacher(
+            self.selected_teacher_id,
+            teacher_name_entry.get(),
+            teacher_salary_entry.get(),
+            start_time.get(),
+            end_time.get(),
+            list(sorted(selected_dates)), 
+            edit_teacher_window
+        )).pack(pady=20)
+
+    def save_edited_teacher(self, teacher_id, name, salary, start_time, end_time, available_dates, window):
+        """Save the edited teacher's information"""
+        Teacher.edit_teacher_info(teacher_id, name, salary, start_time, end_time, available_dates)
+        window.destroy()
+        self.load_teacher_data()

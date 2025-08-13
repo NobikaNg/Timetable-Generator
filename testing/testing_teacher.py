@@ -22,6 +22,3 @@ teacher = Teacher()
 # Verify the teacher was added
 result = teacher.find_teacher("000001")
 print(result)
-teacher.delete_teacher("000001")
-result = teacher.find_teacher("000001")
-print(result)

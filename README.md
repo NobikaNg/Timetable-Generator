@@ -4,7 +4,23 @@ This project is used to generate an on-duty timetable for teachers.
 
 ## Current Progress
 
-- Design teacher management: bug for not save teacher to database
+- TODO List:
+  - Debug `Edit Teacher` feature
+  - Add `Add Room`, `Delete Room` and `Edit Room` buttons and the corresponding logic.
+  - Add `Add Session`, `Delete Session` and `Edit Session` buttons and the corresponding logic.
+  - Implement `schedule.py`
+
+## Activate a execution
+
+```bash
+pip install -r requirements.txt
+```
+
+```bash
+python build.py
+```
+
+Then, enter the `dist` directory and click the `TimeTableAdmin.exe` file.
 
 ## Database
 
@@ -63,7 +79,7 @@ CREATE TABLE SESSION (
 
 `teacher` object indicate a real teacher working in our company, we need to assign teachers into different rooms of different sessions.
 
-- `__init__()`
+- `__init__(self, teacher_id, name, salary, available_date, start_time, end_time, new)`
 
   - This method is used to create a new `teacher` object and add this object as a record into the `TEACHER` table of `timetable_generator.db`.
   - `teacher` object attribute:
@@ -79,12 +95,16 @@ CREATE TABLE SESSION (
     - `total_working_token`(int): `auto_worknig_token` + `assign_working_token`
     - `on_duty_session`(list of `session_id`): a list of `session_id` that the `teacher` on-duty
 
-- `edit_teacher_info()`
+- `def save(self)`
+
+  - This method is used to save a new teacher record to the database.
+
+- `edit_teacher_info(teacher_id, **kwargs)`
   - This method is used to edit the attributes of a `teacher` object and save the change to the `TEACHER` table of `timetable_generator.db`. After editting the attribute, it will call `clear_auto_schedule()` and `token_distribution()` to re-distribute the token.
-- `delete_teacher()`
+- `delete_teacher(teacher_id)`
   - This method is used to delete a `teacher` object and delete the corresponding record into the `TEACHER` table of `timetable_generator.db`. After deleting the `teacher` object, it will call `clear_auto_schedule()` and `token_distribution()` to re-distribute the token.
     whole `time_table_generator.db`.
-- `find_teacher()`
+- `find_teacher(teacher_id)`
   - This method is used to search and get a `teacher` object record from `TEACHER` table of `timetable_generator.db`.
 - `get_all_teachers()`
   - This method is used to get all the `teacher` object in `TEACHER` table of `timetable_generator.db`.
@@ -127,7 +147,7 @@ CREATE TABLE SESSION (
 - `find_session()`
   - This method is used to search and get a `session` object record from `SESSION` table of `timetable_generator.db`.
 
-### schedule.py
+### schedule.py (TODO: need to implement the corresponding logic)
 
 - `clear_auto_schedule()`
 
@@ -175,12 +195,26 @@ CREATE TABLE SESSION (
 
 ### database.py
 
-This file is used to handle the database operation.
+This file is used to process the database-related operation.
 
 ### ui_display.py
+
+- `whole_ui_display()`
 
 ### room_management.py
 
 ### session_management.py
 
 ### teacher_management.py
+
+- `__init__(self, root)`
+- `load_teacher_data(self)`
+- `open_add_teacher_window(self)`
+- `submit_teacher_data(self, teacher_name, teacher_salary, start_time, end_time, available_date, window)`
+
+### timetable_management.py
+
+This file is used to process the display the UI of timetable.
+
+- `display_whole_timetable()`
+- `display_personal_timetable()`
