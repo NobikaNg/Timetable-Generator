@@ -3,11 +3,10 @@ from src.database.database import Database
 import logging
 
 logging.basicConfig(
-    level=logging.INFO,  # Set the logging level
-    format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
+    level=logging.INFO,  
+    format="%(asctime)s - %(levelname)s - %(message)s",  
     handlers=[
-        logging.StreamHandler(),  # Output logs to the terminal
-        logging.FileHandler("application.log")  # Write logs to a file
+        logging.StreamHandler(),  
     ]
 )
 
@@ -66,7 +65,12 @@ class Teacher:
     @staticmethod
     def find_teacher(teacher_id):
         """Find and return a teacher record from the TEACHER table."""
-        query = "SELECT * FROM TEACHER WHERE teacher_id = ?"
+        query = """
+            SELECT teacher_id, name, salary, available_date, start_time, end_time, 
+                   working_hr, auto_working_token, assign_working_token, on_duty_session 
+            FROM TEACHER 
+            WHERE teacher_id = ?
+"""
         # Here you could convert the returned tuple into a Teacher object if needed
         return Database.fetch_one(query, (teacher_id,))
 

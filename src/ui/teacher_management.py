@@ -7,11 +7,10 @@ import calendar
 from datetime import date
 
 logging.basicConfig(
-    level=logging.INFO,  # Set the logging level
-    format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s", 
     handlers=[
-        logging.StreamHandler(),  # Output logs to the terminal
-        logging.FileHandler("application.log")  # Write logs to a file
+        logging.StreamHandler(),  
     ]
 )
 
@@ -156,9 +155,9 @@ class TeacherUI:
             teacher_id=teacher_id,
             name=teacher_name,
             salary=teacher_salary,
-            available_date=available_date, # Correctly pass the list here
-            start_time=start_time,         # Correctly pass start_time
-            end_time=end_time,             # Correctly pass end_time
+            available_date=available_date, 
+            start_time=start_time,         
+            end_time=end_time,             
             new=True
         )
         logging.info(f"Teacher {teacher.name} with ID: {teacher.teacher_id} has been created.")
@@ -202,7 +201,7 @@ class TeacherUI:
 
         edit_teacher_window = Toplevel(self.root)
         edit_teacher_window.title("Edit Teacher")
-        edit_teacher_window.geometry("400x300")
+        edit_teacher_window.geometry("500x650")
 
         # Fetch the selected teacher's information
         teacher = Teacher.find_teacher(self.selected_teacher_id)
@@ -210,25 +209,31 @@ class TeacherUI:
             logging.error(f"Teacher with ID {self.selected_teacher_id} not found.")
             return
 
+        logging.info("Get Teacher object's data")
+        id, name, salary, available_date_str, start_time_val, end_time_val, _, _, _, _ = teacher
+        logging.info("Get data success")
+
         # Name
         tk.Label(edit_teacher_window, text="Name:").pack()
         teacher_name_entry = tk.Entry(edit_teacher_window)
+        teacher_name_entry.insert(0, name) # Pre-fill name
         teacher_name_entry.pack(pady=5)
 
         # Salary 
         tk.Label(edit_teacher_window, text="Salary:").pack()
         teacher_salary_entry = tk.Entry(edit_teacher_window)
+        teacher_salary_entry.insert(0, salary) # Pre-fill salary
         teacher_salary_entry.pack(pady=5)
 
         # Time
         times = [f"{hour}:{minute:02d}" for hour in range(9, 22) for minute in [0, 30]]
         tk.Label(edit_teacher_window, text="Start Time").pack(pady=5)
-        start_time = tk.StringVar()
+        start_time = tk.StringVar(value=start_time_val)
         start_time_dropdown = ttk.Combobox(edit_teacher_window, textvariable=start_time, values=times, state="readonly")
         start_time_dropdown.pack(pady=5)
 
         tk.Label(edit_teacher_window, text="End Time").pack(pady=5)
-        end_time = tk.StringVar()
+        end_time = tk.StringVar(value=end_time_val)
         end_time_dropdown = ttk.Combobox(edit_teacher_window, textvariable=end_time, values=times, state="readonly")
         end_time_dropdown.pack(pady=5)
 
@@ -248,7 +253,7 @@ class TeacherUI:
         for col, h in enumerate(headers):
             tk.Label(calendar_frame, text = h, font = ("Arial", 12, "bold"), padx = 8, pady = 4).grid(row=0, column = col, sticky = "nsew")
 
-        selected_dates = set()
+        selected_dates = set(available_date_str.split(',')) if available_date_str else set()
 
         def make_toggle(day_date):
             btn_ref = {"btn": None, "default_bg": None}
@@ -277,6 +282,8 @@ class TeacherUI:
                     btn.grid(row=r, column=c, sticky="nsew", padx=1, pady=1)
                     ref["btn"] = btn
                     ref["default_bg"] = btn.cget("bg")
+                    if day_date.isoformat() in selected_dates:
+                        btn.config(relief="sunken", bg="#cce5ff")
 
         # Save button
         tk.Button(edit_teacher_window, text="Save", command=lambda: self.save_edited_teacher(
@@ -291,6 +298,19 @@ class TeacherUI:
 
     def save_edited_teacher(self, teacher_id, name, salary, start_time, end_time, available_dates, window):
         """Save the edited teacher's information"""
-        Teacher.edit_teacher_info(teacher_id, name, salary, start_time, end_time, available_dates)
+        update_data = {
+            "name": name,
+            "salary": salary,
+            "start_time": start_time,
+            "end_time": end_time,
+            "available_date": available_dates
+        }
+
+        filtered_data = {k: v for k, v in update_data.items() if v}
+
+        if filtered_data:
+            Teacher.edit_teacher_info(
+                teacher_id, 
+                **filtered_data)
         window.destroy()
         self.load_teacher_data()
