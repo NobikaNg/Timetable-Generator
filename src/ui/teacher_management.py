@@ -15,25 +15,29 @@ logging.basicConfig(
 )
 
 class TeacherUI:
-    def __init__(self, root):
+    def __init__(self, root, list_parent=None):
         self.root = root
-        self.root.title("Teacher Management")
+
+        # top-left
+        top_frame = tk.Frame(root)
+        top_frame.pack(side="top", anchor="nw", padx=20, pady=20)
         
         # Add Teacher button
-        self.add_teacher_button = tk.Button(root, text="Add Teacher", command=self.open_add_teacher_window)
-        self.add_teacher_button.pack(pady=20)
+        self.add_teacher_button = tk.Button(top_frame, text="Add Teacher", command=self.open_add_teacher_window)
+        self.add_teacher_button.pack(side="left", padx=12)
 
         # Delete Teacher button
-        self.delete_teacher_button = tk.Button(root, text="Delete Teacher", command=self.open_delete_teacher_window)
-        self.delete_teacher_button.pack(pady=20)
+        self.delete_teacher_button = tk.Button(top_frame, text="Delete Teacher", command=self.open_delete_teacher_window)
+        self.delete_teacher_button.pack(side="left", padx=12)
 
         # Edit Teacher button
-        self.edit_teacher_button = tk.Button(root, text="Edit Teacher", command=self.open_edit_teacher_window)
-        self.edit_teacher_button.pack(pady=20)
+        self.edit_teacher_button = tk.Button(top_frame, text="Edit Teacher", command=self.open_edit_teacher_window)
+        self.edit_teacher_button.pack(side="left", padx=12)
 
         # Teacher Listbox
-        self.teacher_listbox = tk.Listbox(root, width=50, height=20)
-        self.teacher_listbox.pack(side="right", padx=20, pady=20)
+        list_parent = list_parent or root
+        self.teacher_listbox = tk.Listbox(list_parent, width=50, height=20)
+        self.teacher_listbox.pack(side="top", padx=20, pady=(20, 10), fill="both")
         self.teacher_listbox.bind('<<ListboxSelect>>', self.on_teacher_select)
 
         self.selected_teacher_id = None
