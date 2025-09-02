@@ -135,7 +135,7 @@ CREATE TABLE SESSION (
     - `session_id`(string of int): a 11-bit unique id of the session, organized by `room_id`(5-bit) + `day`(3-bit, `000` indicate `Monday`) + `session_sequence`(3-bit)
     - `session_start`(string): the starting time of the session, format is `xx:xx`
     - `session_end`(string): the ending time of the session, format is `xx:xx`
-    - `session_room`(string): the `room_name` that the session belong which `room` object
+    - `session_room`(string): the `room_id` that the session belong which `room` object
     - `session_date`(string): the date of the session, format is `xx/xx`
     - `student_count`(int): number of the student in this session
     - `on_duty_teachers`(list of `teacher_id`): a list of teachers of `teacher_id` who need to onduty in this session, format is `["xxxxxx", "xxxxxx", ...]`. If a `teacher` is assigned by `manural_distribution()`, the `teacher_id` will be appended a string `"as"` to indicate this `teacher` is assigned by user(e.g. `000001as`).

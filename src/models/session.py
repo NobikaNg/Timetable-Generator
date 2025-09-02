@@ -1,80 +1,71 @@
-import sqlite3
-import os
 from logic.schedule import clear_auto_schedule, token_distribution
-import sys
+from src.database.database import Database
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,  
+    format="%(asctime)s - %(levelname)s - %(message)s",  
+    handlers=[
+        logging.StreamHandler(),  
+    ]
+)
 
 class Session:
-    def __init__(self, db_path=None):
-        if db_path is None:
-            # Handle PyInstaller bundled app
-            if getattr(sys, 'frozen', False):
-                # Running in a PyInstaller bundle
-                bundle_dir = sys._MEIPASS
-                self.db_path = os.path.join(bundle_dir, "src", "database", "timetable_generator.db")
-            else:
-                # Running in normal Python environment
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                src_dir = os.path.dirname(script_dir)
-                self.db_path = os.path.join(src_dir, "database", "timetable_generator.db")
-            self.db_path = os.path.normpath(self.db_path)
-        else:
-            self.db_path = db_path
-    
-    def connect_db(self):
-        """Connect to the SQLite database."""
-        return sqlite3.connect(self.db_path)
+    def __init__(self, session_id, session_start, session_end, session_room, session_date, student_count, on_duty_teachers, session_token, new):
+        self.session_id = session_id
+        self.session_start = session_start
+        self.session_end = session_end
+        self.session_room = session_room
+        self.session_date = session_date
+        self.student_count = student_count
+        self.on_duty_teachers = on_duty_teachers
+        self.session_token = session_token
 
-    def add_session(self, session_id, session_start, session_end, session_room, session_date, student_count,
-                    on_duty_teachers=None, session_token=0):
-        """Add a new session to the SESSION table."""
-        if on_duty_teachers is None:
-            on_duty_teachers = []
-
-        with self.connect_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO SESSION (session_id, session_start, session_end, session_room, session_date, 
-                                     student_count, on_duty_teachers, session_token)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (session_id, session_start, session_end, session_room, session_date, student_count,
-                  ",".join(on_duty_teachers), session_token))
-            conn.commit()   
+        if new:
+            self.save()
     
-    def edit_session_info(self, session_id, **kwargs):
+    def save(self):
+        query = """
+            INSERT INTO SESSION (session_id, session_start, session_end, session_room, session_date, student_count, on_duty_teachers, session_token)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (self.session_id, self.session_start, self.session_end, self.session_room, self.session_date, self.student_count, ",".join(self.on_duty_teachers), self.session_token)
+        Database.execute_query(query, params)
+        logging.info(f"Session {self.session_id} has been saved to database")
+    
+    @staticmethod
+    def edit_session_info(session_id, **kwargs):
         """Edit session attributes and update the SESSION table."""
-        with self.connect_db() as conn:
-            cursor = conn.cursor()
-            for key, value in kwargs.items():
-                if key == "on_duty_teachers":
-                    value = ",".join(value)  # Convert list to string
-                cursor.execute(f"""
-                    UPDATE SESSION
-                    SET {key} = ?
-                    WHERE session_id = ?
-                """, (value, session_id))
-            conn.commit()
+        for key, value in kwargs.items():
+            if key == "on_duty_teachers":
+                value = ",".join(value)
+            query = f"UPDATE SESSION SET {key} = ? WHERE session_id = ?"
+            Database.execute_query(query, (value, session_id))
+        logging.info(f"Session {session_id}'s data has been updated")
         clear_auto_schedule()
         token_distribution()
     
-    def delete_session(self, session_id):
+    @staticmethod
+    def delete_session(session_id):
         """Delete a session from the SESSION table."""
-        with self.connect_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM SESSION WHERE session_id = ?", (session_id,))
-            conn.commit()
+        query = "DELETE FROM SESSION WHERE session_id = ?"
+        Database.execute_query(query, (session_id,))
+        logging.info(f"Session {session_id} has been deleted from the database")
+        clear_auto_schedule()
+        token_distribution()
     
-    def find_session(self, session_id):
+    @staticmethod
+    def find_session(session_id):
         """Find and return a session record from the SESSION table."""
-        with self.connect_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM SESSION WHERE session_id = ?", (session_id,))
-            session = cursor.fetchone()
-        return session
+        query = """
+            SELECT session_id, session_start, session_end, session_room, session_date, student_count, on_duty_teachers, session_token 
+            FROM SESSION  
+            WHERE session_id = ?
+        """
+        return Database.fetch_one(query, (session_id,))
     
-    def get_all_sessions(self):
-        """Fetch all teacher records from the TEACHER table."""
-        with self.connect_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT session_id, session_start, session_end, session_room, session_date, student_count, on_duty_teachers, session_token FROM SESSION")
-            sessions = cursor.fetchall()
-        return sessions
+    @staticmethod
+    def get_all_session():
+        """Fetch all session records from the SESSION table."""
+        query = "SELECT session_id, session_start, session_end, session_room, session_date, student_count, on_duty_teachers, session_token FROM SESSION"
+        return Database.fetch_all(query)

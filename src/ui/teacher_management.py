@@ -50,7 +50,7 @@ class TeacherUI:
         Load teacher data from the database and display it in the listbox.
         """
         self.teacher_listbox.delete(0, tk.END) # Clear the listbox
-        teacher = Teacher(None, None, None, None, None, None, new=False) 
+        #teacher = Teacher(None, None, None, None, None, None, new=False) 
         teachers = Teacher.get_all_teachers()  # Fetch all teacher records from the database
         
         for teacher_record in teachers:
@@ -68,6 +68,8 @@ class TeacherUI:
         add_teacher_window = Toplevel(self.root)
         add_teacher_window.title("Add Teacher")
         add_teacher_window.geometry("500x500")
+
+        add_teacher_window.grab_set()
 
         tk.Label(add_teacher_window, text="Add Teacher Form", font=("Arial", 14)).pack(pady=10)
         

@@ -49,7 +49,7 @@ class Teacher:
                 value = ",".join(value)
             query = f"UPDATE TEACHER SET {key} = ? WHERE teacher_id = ?"
             Database.execute_query(query, (value, teacher_id))
-        
+        logging.info(f"Teacher {teacher_id}'s data has been updated")
         clear_auto_schedule()
         token_distribution()
 
@@ -58,7 +58,7 @@ class Teacher:
         """Delete a teacher from the TEACHER table."""
         query = "DELETE FROM TEACHER WHERE teacher_id = ?"
         Database.execute_query(query, (teacher_id,))
-        
+        logging.info(f"Teacher {teacher_id} has been deleted from the database")
         clear_auto_schedule()
         token_distribution()
 
